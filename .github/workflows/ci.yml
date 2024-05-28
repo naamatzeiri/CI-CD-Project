@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start Node.js application
+        run: node app.js &
+        id: start_application
+
+      - name: Wait for application to start
+        run: sleep 10
+
+      - name: Test application endpoint
+        id: test_endpoint
+        run: |
+          response=$(curl -s http://localhost:4000)
+          if [ "$response" == "AM ISRAEL HAI!" ]; then
+            echo "Test passed: Received expected response 'AM ISRAEL HAI!'"
+          else
+            echo "Test failed: Received unexpected response '$response'"
+            exit 1
+          fi
+
+      - name: Stop Node.js application
+        run: |
+          kill $(lsof -t -i:4000)
+
+      - name: Build Docker image
+        if: success()
+        run: docker build -t nodejs-app .
+
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main' && success()
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Tag Docker image
+        if: github.ref == 'refs/heads/main' && success()
+        run: docker tag nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/main' && success()
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Alert that the image is being deployed
+        if: success()
+        run: echo "Deploying to platform..."
