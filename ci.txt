@@ -1,56 +1,66 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # # Runs a single command using the runners shell
-      # - name: Run a one-line script
-      #   run: echo Hello, world!
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      - name: remove the previous container and image
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start Node.js application
+        run: node app.js &
+        id: start_application
+
+      - name: Wait for application to start
+        run: sleep 10
+
+      - name: Test application endpoint
+        id: test_endpoint
         run: |
-          docker rm -f nodejscontainer,
-          docker rmi -f nodejs
-
-      - name: create the docker image and run a container from it
-        run: 
-          docker build -t nodejs .,
-          docker run -d -p 3000:3000 --name nodejscontainer nodejs
-
-      - name: Verify container functionality
-        run: |
-          response=$(curl -k http://localhost:3000)
+          response=$(curl -s http://localhost:4000)
           if [ "$response" == "AM ISRAEL HAI!" ]; then
-            echo "The container is running correctly"
+            echo "Test passed: Received expected response 'AM ISRAEL HAI!'"
           else
             echo "Test failed: Received unexpected response '$response'"
             exit 1
           fi
-          
-      # # Runs a set of commands using the runners shell
-      # - name: Run a multi-line script
-      #   run: |
-      #     echo Add other actions to build,
-      #     echo test, and deploy your project.
+
+      - name: Stop Node.js application
+        run: |
+          kill $(lsof -t -i:4000)
+
+      - name: Build Docker image
+        if: success()
+        run: docker build -t nodejs-app .
+
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main' && success()
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Tag Docker image
+        if: github.ref == 'refs/heads/main' && success()
+        run: docker tag nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/main' && success()
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Alert that the image is being deployed
+        if: success()
+        run: echo "Deploying to platform..."
