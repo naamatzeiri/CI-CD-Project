@@ -42,6 +42,9 @@ jobs:
         run: |
           docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
 
+      - name: Wait for application to start
+        run: sleep 10
+
       - name: Test application endpoint
         id: test_endpoint
         run: |
