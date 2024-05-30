@@ -46,7 +46,7 @@ jobs:
         id: test_endpoint
         run: |
           set -e
-          response=$(curl -s http://localhost:4000)
+          response=$(curl -sk http://localhost:4000)
           if [ "$response" == "AM ISRAEL HAI!" ]; then
             echo "Test passed: Received expected response 'AM ISRAEL HAI!'"
           else
