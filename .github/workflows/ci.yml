@@ -11,17 +11,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [14, 16, 18]
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Start Node.js application
         run: node app.js &
@@ -33,6 +37,7 @@ jobs:
       - name: Test application endpoint
         id: test_endpoint
         run: |
+          set -e
           response=$(curl -s http://localhost:4000)
           if [ "$response" == "AM ISRAEL HAI!" ]; then
             echo "Test passed: Received expected response 'AM ISRAEL HAI!'"

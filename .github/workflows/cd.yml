@@ -1,0 +1,47 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        if: success()
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Stop and remove existing container
+        if: success()
+        run: |
+          docker stop nodejs-app || true
+          docker rm nodejs-app || true
+
+      - name: Remove existing image
+        if: success()
+        run: |
+          docker rmi ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest || true
+
+      - name: Pull Docker image
+        if: success()
+        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Deploy Docker image
+        if: success()
+        run: |
+          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Alert deployment success
+        if: success()
+        run: echo "Deployment successful!"
