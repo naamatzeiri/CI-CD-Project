@@ -74,7 +74,7 @@ jobs:
 
       - name: Tag Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker tag nodejs-app:${{ env.version }} ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
+        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Push Docker image
         if: github.ref == 'refs/heads/main' && success()
