@@ -18,10 +18,6 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v1
 
-      - name: Log in to Docker Hub
-        if: success()
-        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-
       - name: Stop and remove existing container
         if: success()
         run: |
@@ -35,12 +31,12 @@ jobs:
 
       - name: Pull Docker image
         if: success()
-        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Deploy Docker image
         if: success()
         run: |
-          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Wait for application to start
         run: sleep 10

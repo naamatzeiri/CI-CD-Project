@@ -51,6 +51,18 @@ jobs:
       - name: Stop Node.js application
         run: |
           kill $(lsof -t -i:4000)
+      
+      - name: Read and increment version
+        id: increment_version
+        run: |
+          version=$(cat VERSION)
+          echo "Current version: $version"
+          IFS='.' read -r major minor patch <<< "$version"
+          patch=$((patch + 1))
+          new_version="$major.$minor.$patch"
+          echo "New version: $new_version"
+          echo $new_version > VERSION
+          echo "version=$new_version" >> $GITHUB_ENV
 
       - name: Build Docker image
         if: success()
@@ -62,11 +74,11 @@ jobs:
 
       - name: Tag Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker tag nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker tag nodejs-app:${{ env.version }} ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Push Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Alert that the image is being deployed
         if: success()
