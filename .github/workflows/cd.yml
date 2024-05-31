@@ -18,24 +18,6 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v1
 
-      - name: Read current version
-        id: read_version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-
-      - name: Calculate previous version
-        id: calc_prev_version
-        run: |
-          IFS='.' read -r major minor patch <<< "$VERSION"
-          if [ "$minor" -eq 0 ]; then
-            prev_major=$((major - 1))
-            prev_minor=9
-          else
-            prev_major=$major
-            prev_minor=$((minor - 1))
-          fi
-          PREV_VERSION="${prev_major}.${prev_minor}.${patch}"
-          echo "PREV_VERSION=$PREV_VERSION" >> $GITHUB_ENV
-
       - name: Stop and remove existing container
         if: success()
         run: |

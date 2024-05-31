@@ -52,17 +52,35 @@ jobs:
         run: |
           kill $(lsof -t -i:4000)
       
-      - name: Read and increment version
-        id: increment_version
+      - name: Read current version
+        id: read_version
         run: |
-          version=$(cat VERSION)
-          echo "Current version: $version"
-          IFS='.' read -r major minor patch <<< "$version"
-          patch=$((patch + 1))
-          new_version="$major.$minor.$patch"
-          echo "New version: $new_version"
-          echo $new_version > VERSION
-          echo "version=$new_version" >> $GITHUB_ENV
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          echo "current version: $VERSION"
+
+      - name: Calculate next version
+        id: calc_next_version
+        run: |
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          if [ "$patch" -eq 9 ]; then
+            next_patch=0
+            if [ "$minor" -eq 9 ]; then
+              next_major=$((major + 1))
+              next_minor=0
+            else
+              next_major=$major
+              next_minor=$((minor + 1))
+            fi
+          else
+            next_major=$major
+            next_minor=$minor
+            next_patch=$((patch + 1))
+          fi
+          NEXT_VERSION="${next_major}.${next_minor}.${next_patch}"
+          echo "PREV_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+          echo "$NEXT_VERSION" >> VERSION
+          echo "$NEXT_VERSION $PREV_VERSION"
 
       - name: Build Docker image
         if: success()
@@ -74,12 +92,14 @@ jobs:
 
       - name: Tag Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
+        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
 
       - name: Push Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
 
       - name: Alert that the image is being deployed
         if: success()
         run: echo "Deploying to platform..."
+
+
