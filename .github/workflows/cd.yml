@@ -31,15 +31,17 @@ jobs:
 
       - name: Pull Docker image
         if: success()
-        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
+        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app
 
       - name: Deploy Docker image
         if: success()
         run: |
-          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
+          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app
 
       - name: Wait for application to start
-        run: sleep 10
+        run: |
+          sleep 10
+          docker ps -a
 
       - name: Test application endpoint
         id: test_endpoint
