@@ -18,6 +18,11 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v1
 
+      - name: Debug environment variables
+        run: |
+          echo "Previous version: ${{ env.PREV_VERSION }}"
+          echo "Current version: ${{ env.VERSION }}"
+
       - name: Stop and remove existing container
         if: success()
         run: |
