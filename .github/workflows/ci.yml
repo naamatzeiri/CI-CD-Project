@@ -51,40 +51,6 @@ jobs:
       - name: Stop Node.js application
         run: |
           kill $(lsof -t -i:4000)
-      
-      - name: Read current version
-        id: read_version
-        run: |
-          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
-          echo "current version: ${{ env.VERSION }}"
-
-      - name: Calculate next version
-        id: calc_next_version
-        run: |
-          IFS='.' read -r major minor patch <<< "$VERSION"
-          if [ "$patch" -eq 9 ]; then
-            next_patch=0
-            if [ "$minor" -eq 9 ]; then
-              next_major=$((major + 1))
-              next_minor=0
-            else
-              next_major=$major
-              next_minor=$((minor + 1))
-            fi
-          else
-            next_major=$major
-            next_minor=$minor
-            next_patch=$((patch + 1))
-          fi
-          NEXT_VERSION="${next_major}.${next_minor}.${next_patch}"
-          echo "PREV_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
-          echo "$NEXT_VERSION" >> VERSION
-
-      - name: Set environment variables
-        run: |
-          echo "Previous version: ${{ env.PREV_VERSION }}"
-          echo "Current version: ${{ env.VERSION }}"
 
       - name: Build Docker image
         if: success()
@@ -96,11 +62,11 @@ jobs:
 
       - name: Tag Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
+        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
 
       - name: Push Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
 
       - name: Alert that the image is being deployed
         if: success()

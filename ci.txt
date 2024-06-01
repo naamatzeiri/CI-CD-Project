@@ -11,17 +11,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [12, 14, 16]
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm -rf node_modules
+          npm install
 
       - name: Start Node.js application
         run: node app.js &
@@ -33,6 +39,7 @@ jobs:
       - name: Test application endpoint
         id: test_endpoint
         run: |
+          set -e
           response=$(curl -s http://localhost:4000)
           if [ "$response" == "AM ISRAEL HAI!" ]; then
             echo "Test passed: Received expected response 'AM ISRAEL HAI!'"
@@ -44,6 +51,40 @@ jobs:
       - name: Stop Node.js application
         run: |
           kill $(lsof -t -i:4000)
+      
+      - name: Read current version
+        id: read_version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          echo "current version: ${{ env.VERSION }}"
+
+      - name: Calculate next version
+        id: calc_next_version
+        run: |
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          if [ "$patch" -eq 9 ]; then
+            next_patch=0
+            if [ "$minor" -eq 9 ]; then
+              next_major=$((major + 1))
+              next_minor=0
+            else
+              next_major=$major
+              next_minor=$((minor + 1))
+            fi
+          else
+            next_major=$major
+            next_minor=$minor
+            next_patch=$((patch + 1))
+          fi
+          NEXT_VERSION="${next_major}.${next_minor}.${next_patch}"
+          echo "PREV_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+          echo "$NEXT_VERSION" >> VERSION
+
+      - name: Set environment variables
+        run: |
+          echo "Previous version: ${{ env.PREV_VERSION }}"
+          echo "Current version: ${{ env.VERSION }}"
 
       - name: Build Docker image
         if: success()
@@ -55,11 +96,11 @@ jobs:
 
       - name: Tag Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker tag nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker tag nodejs-app:latest ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
 
       - name: Push Docker image
         if: github.ref == 'refs/heads/main' && success()
-        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
 
       - name: Alert that the image is being deployed
         if: success()

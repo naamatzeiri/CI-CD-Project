@@ -18,6 +18,11 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v1
 
+      - name: Debug environment variables
+        run: |
+          echo "Next version:  ${{ env.VERSION }}"
+          echo "Current version:  ${{ env.PREV_VERSION }}"
+
       - name: Stop and remove existing container
         if: success()
         run: |
@@ -27,16 +32,16 @@ jobs:
       - name: Remove existing image
         if: success()
         run: |
-          docker rmi ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest || true
+          docker rmi ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.PREV_VERSION }} || true
 
       - name: Pull Docker image
         if: success()
-        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+        run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.VERSION }}
 
       - name: Deploy Docker image
         if: success()
         run: |
-          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:${{ env.version }}
 
       - name: Wait for application to start
         run: |
