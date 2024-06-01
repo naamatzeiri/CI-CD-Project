@@ -1,5 +1,5 @@
 # Use the official Alpine base image
-FROM alpine:3.20.0
+FROM node:lts-alpine
 
 # Set the working directory
 WORKDIR /app
