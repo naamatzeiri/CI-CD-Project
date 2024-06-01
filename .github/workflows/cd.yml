@@ -20,8 +20,8 @@ jobs:
 
       - name: Debug environment variables
         run: |
-          echo "Previous version: ${{ env.PREV_VERSION }}"
-          echo "Current version: ${{ env.VERSION }}"
+          echo "Next version:  ${{ env.VERSION }}"
+          echo "Current version:  ${{ env.PREV_VERSION }}"
 
       - name: Stop and remove existing container
         if: success()
