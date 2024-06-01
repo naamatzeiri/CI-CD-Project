@@ -80,7 +80,8 @@ jobs:
           echo "PREV_VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION=$NEXT_VERSION" >> $GITHUB_ENV
           echo "$NEXT_VERSION" >> VERSION
-          echo " ${{ env.PREV_VERSION }}  ${{ env.VERSION }}"
+          echo "${{ env.PREV_VERSION }}"  
+          echo "${{ env.VERSION }}"
 
       - name: Build Docker image
         if: success()
