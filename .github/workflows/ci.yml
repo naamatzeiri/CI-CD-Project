@@ -29,12 +29,45 @@ jobs:
           rm -rf node_modules
           npm install
 
-      - name: Start Node.js application
-        run: node app.js &
-        id: start_application
+      # - name: Start Node.js application
+      #   run: node app.js &
+      #   id: start_application
+
+      # - name: Wait for application to start
+      #   run: sleep 10
+
+      # - name: Test application endpoint
+      #   id: test_endpoint
+      #   run: |
+      #     set -e
+      #     response=$(curl -s http://localhost:4000)
+      #     if [ "$response" == "AM ISRAEL HAI!" ]; then
+      #       echo "Test passed: Received expected response 'AM ISRAEL HAI!'"
+      #     else
+      #       echo "Test failed: Received unexpected response '$response'"
+      #       exit 1
+      #     fi
+
+      # - name: Stop Node.js application
+      #   run: |
+      #     kill $(lsof -t -i:4000)
+
+      - name: Build Docker image
+        if: success()
+        run: docker build -t nodejs-app .
+
+      # - name: Pull Docker image
+      #   if: success()
+      #   run: docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
+
+      - name: Deploy Docker image
+        if: success()
+        run: |
+          docker run -d -p 4000:4000 --name nodejs-app ${{ secrets.DOCKER_HUB_USERNAME }}/nodejs-app:latest
 
       - name: Wait for application to start
-        run: sleep 10
+        run: |
+          sleep 10
 
       - name: Test application endpoint
         id: test_endpoint
@@ -48,16 +81,8 @@ jobs:
             exit 1
           fi
 
-      - name: Stop Node.js application
-        run: |
-          kill $(lsof -t -i:4000)
-
-      - name: Build Docker image
-        if: success()
-        run: docker build -t nodejs-app .
-
       - name: Log in to Docker Hub
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/main'
         run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       - name: Tag Docker image
